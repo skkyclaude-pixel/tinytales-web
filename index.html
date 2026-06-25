@@ -249,6 +249,13 @@
       </div>
       
       <div class="settings-row">
+        <label>
+          <input type="checkbox" id="useBrowserTTS"> 
+          Use browser voice (slower but more natural)
+        </label>
+      </div>
+      
+      <div class="settings-row">
         <label for="elevenKey">ElevenLabs API Key (for realistic voice):</label>
         <input type="password" id="elevenKey" placeholder="sk_...">
         <p style="font-size: 0.8em; color: #666;">Get free credits at elevenlabs.io</p>
@@ -296,6 +303,7 @@
     let ELEVENLABS_API_KEY = localStorage.getItem('tinytales_eleven_key') || '';
     let SELECTED_VOICE = localStorage.getItem('tinytales_voice') || 'pNInz6obpgDQGcFmaJgB';
     let SPEED = parseFloat(localStorage.getItem('tinytales_speed')) || 0.7;
+    let USE_BROWSER_TTS = localStorage.getItem('tinytales_browser_tts') === 'true';
     
     // Settings panel
     const settingsBtn = document.getElementById('settingsBtn');
@@ -304,6 +312,7 @@
     const elevenKeyInput = document.getElementById('elevenKey');
     const voiceSelect = document.getElementById('voiceSelect');
     const speedSelect = document.getElementById('speedSelect');
+    const useBrowserTTSCheck = document.getElementById('useBrowserTTS');
     const saveApiKeyBtn = document.getElementById('saveApiKey');
     
     settingsBtn.addEventListener('click', () => {
@@ -313,6 +322,7 @@
         elevenKeyInput.value = ELEVENLABS_API_KEY;
         voiceSelect.value = SELECTED_VOICE;
         speedSelect.value = SPEED;
+        useBrowserTTSCheck.checked = USE_BROWSER_TTS;
       }
     });
     
@@ -321,6 +331,7 @@
       const elevenKey = elevenKeyInput.value.trim();
       const voice = voiceSelect.value;
       const speed = parseFloat(speedSelect.value);
+      const useBrowser = useBrowserTTSCheck.checked;
       
       if (openaiKey) {
         localStorage.setItem('tinytales_api_key', openaiKey);
@@ -332,8 +343,10 @@
       }
       localStorage.setItem('tinytales_voice', voice);
       localStorage.setItem('tinytales_speed', speed);
+      localStorage.setItem('tinytales_browser_tts', useBrowser);
       SELECTED_VOICE = voice;
       SPEED = speed;
+      USE_BROWSER_TTS = useBrowser;
       
       settingsPanel.classList.add('hidden');
       alert('Settings saved! Ready to play.');
@@ -429,8 +442,8 @@
       }
       speechSynthesis.cancel();
       
-      // Try ElevenLabs first if API key is set
-      if (ELEVENLABS_API_KEY) {
+      // Try ElevenLabs first if API key is set and not using browser TTS
+      if (!USE_BROWSER_TTS && ELEVENLABS_API_KEY) {
         try {
           status.textContent = 'Generating voice...';
           const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${SELECTED_VOICE}`, {
@@ -486,19 +499,41 @@
       micIcon.textContent = '🗣️';
       
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.9;
-      utterance.pitch = 1.1;
       
-      // Try to find a friendly voice
+      // Try to find a UK English voice first
       const voices = speechSynthesis.getVoices();
-      const friendlyVoice = voices.find(v => 
-        v.name.includes('Samantha') || 
-        v.name.includes('English') || 
-        v.name.includes('Google UK English Female')
-      );
-      if (friendlyVoice) {
-        utterance.voice = friendlyVoice;
+      let selectedVoice = null;
+      
+      // Priority: UK voices first, then other English
+      const ukVoiceOrder = [
+        'Google UK English Male',
+        'Google UK English Female', 
+        'Microsoft Hazel',
+        'Microsoft Susan',
+        'English United Kingdom'
+      ];
+      
+      for (const voiceName of ukVoiceOrder) {
+        selectedVoice = voices.find(v => v.name.includes(voiceName));
+        if (selectedVoice) break;
       }
+      
+      // Fallback to any English voice
+      if (!selectedVoice) {
+        selectedVoice = voices.find(v => 
+          v.lang.startsWith('en') && 
+          (v.name.includes('Samantha') || v.name.includes('English'))
+        );
+      }
+      
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+      }
+      
+      // Slower rate for storytelling (0.7 is slower than normal 1.0)
+      utterance.rate = 0.75;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
       
       utterance.onend = () => {
         led.classList.remove('speaking');
