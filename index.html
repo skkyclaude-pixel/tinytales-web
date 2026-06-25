@@ -148,7 +148,48 @@
       font-size: 1em;
     }
     
-    .error {
+    .settings-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(255,255,255,0.2);
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+    }
+    
+    .settings-panel {
+      background: rgba(255,255,255,0.95);
+      border-radius: 20px;
+      padding: 25px;
+      margin-bottom: 20px;
+      text-align: left;
+    }
+    
+    .settings-panel label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+      color: #333;
+    }
+    
+    .settings-panel input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #ddd;
+      border-radius: 10px;
+      font-size: 14px;
+      margin-bottom: 15px;
+    }
+    
+    .settings-panel .btn-save {
+      background: linear-gradient(135deg, #00b894, #00cec9);
+      padding: 10px 25px;
+      font-size: 1em;
+    }
       background: #ffe6e6;
       color: #cc0000;
       padding: 15px;
@@ -158,7 +199,17 @@
   </style>
 </head>
 <body>
+  <button class="settings-btn" id="settingsBtn" title="Settings">⚙️</button>
+  
   <div class="container">
+    <div class="settings-panel hidden" id="settingsPanel">
+      <h3>⚙️ Settings</h3>
+      <label for="apiKey">OpenAI API Key:</label>
+      <input type="password" id="apiKey" placeholder="sk-proj-...">
+      <p style="font-size: 0.8em; color: #666; margin-bottom: 15px;">Your key is stored locally in your browser and never sent to any server.</p>
+      <button class="btn btn-save" id="saveApiKey">Save Key</button>
+    </div>
+    
     <h1>✨ TinyTales</h1>
     <p class="subtitle">Choose your adventure and talk to the story!</p>
     
@@ -193,8 +244,36 @@
     const micIcon = document.getElementById('micIcon');
     const errorDiv = document.getElementById('errorDiv');
     
-    // OpenAI API key
-    const OPENAI_API_KEY = '';
+    // OpenAI API key - loaded from localStorage
+    let OPENAI_API_KEY = localStorage.getItem('tinytales_api_key') || '';
+    
+    // Settings panel
+    const settingsBtn = document.getElementById('settingsBtn');
+    const settingsPanel = document.getElementById('settingsPanel');
+    const apiKeyInput = document.getElementById('apiKey');
+    const saveApiKeyBtn = document.getElementById('saveApiKey');
+    
+    settingsBtn.addEventListener('click', () => {
+      settingsPanel.classList.toggle('hidden');
+      if (!settingsPanel.classList.contains('hidden')) {
+        apiKeyInput.value = OPENAI_API_KEY;
+      }
+    });
+    
+    saveApiKeyBtn.addEventListener('click', () => {
+      const key = apiKeyInput.value.trim();
+      if (key) {
+        localStorage.setItem('tinytales_api_key', key);
+        OPENAI_API_KEY = key;
+        settingsPanel.classList.add('hidden');
+        alert('API key saved! Ready to play.');
+      }
+    });
+    
+    // Check if API key is set
+    if (!OPENAI_API_KEY) {
+      showError('Please add your OpenAI API key in Settings (⚙️) to play the story.');
+    }
     
     let recognition;
     let currentStory = '';
@@ -387,6 +466,12 @@ Make the story feel warm and magical.`;
     
     // Start button handler
     startBtn.addEventListener('click', () => {
+      if (!OPENAI_API_KEY) {
+        settingsPanel.classList.remove('hidden');
+        showError('Please add your OpenAI API key in Settings (⚙️) first.');
+        return;
+      }
+      
       hideError();
       initRecognition();
       
