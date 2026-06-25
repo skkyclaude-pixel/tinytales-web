@@ -240,6 +240,15 @@
       </div>
       
       <div class="settings-row">
+        <label for="speedSelect">Speed:</label>
+        <select id="speedSelect">
+          <option value="0.7">Slow - Story time pace</option>
+          <option value="0.85">Slightly Slow</option>
+          <option value="1.0" selected>Normal</option>
+        </select>
+      </div>
+      
+      <div class="settings-row">
         <label for="elevenKey">ElevenLabs API Key (for realistic voice):</label>
         <input type="password" id="elevenKey" placeholder="sk_...">
         <p style="font-size: 0.8em; color: #666;">Get free credits at elevenlabs.io</p>
@@ -286,6 +295,7 @@
     let OPENAI_API_KEY = localStorage.getItem('tinytales_api_key') || '';
     let ELEVENLABS_API_KEY = localStorage.getItem('tinytales_eleven_key') || '';
     let SELECTED_VOICE = localStorage.getItem('tinytales_voice') || 'pNInz6obpgDQGcFmaJgB';
+    let SPEED = parseFloat(localStorage.getItem('tinytales_speed')) || 0.7;
     
     // Settings panel
     const settingsBtn = document.getElementById('settingsBtn');
@@ -293,6 +303,7 @@
     const apiKeyInput = document.getElementById('apiKey');
     const elevenKeyInput = document.getElementById('elevenKey');
     const voiceSelect = document.getElementById('voiceSelect');
+    const speedSelect = document.getElementById('speedSelect');
     const saveApiKeyBtn = document.getElementById('saveApiKey');
     
     settingsBtn.addEventListener('click', () => {
@@ -301,6 +312,7 @@
         apiKeyInput.value = OPENAI_API_KEY;
         elevenKeyInput.value = ELEVENLABS_API_KEY;
         voiceSelect.value = SELECTED_VOICE;
+        speedSelect.value = SPEED;
       }
     });
     
@@ -308,6 +320,7 @@
       const openaiKey = apiKeyInput.value.trim();
       const elevenKey = elevenKeyInput.value.trim();
       const voice = voiceSelect.value;
+      const speed = parseFloat(speedSelect.value);
       
       if (openaiKey) {
         localStorage.setItem('tinytales_api_key', openaiKey);
@@ -318,7 +331,9 @@
         ELEVENLABS_API_KEY = elevenKey;
       }
       localStorage.setItem('tinytales_voice', voice);
+      localStorage.setItem('tinytales_speed', speed);
       SELECTED_VOICE = voice;
+      SPEED = speed;
       
       settingsPanel.classList.add('hidden');
       alert('Settings saved! Ready to play.');
@@ -430,7 +445,7 @@
               voice_settings: {
                 stability: 0.5,
                 similarity_boost: 0.8,
-                style: 0.5,
+                style: SPEED < 0.8 ? 0.3 : 0.5,
                 use_speaker_boost: true
               }
             })
